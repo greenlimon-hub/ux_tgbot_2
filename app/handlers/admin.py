@@ -449,13 +449,15 @@ async def cmd_poll_custom(
             "question": question,
             "options": options,
         },
-        @router.message(Command("get_db"))
+    )
+
+
+@router.message(Command("get_db"))
 async def cmd_get_db(message: Message, session: AsyncSession):
     """Отправить файл базы данных администратору"""
     from aiogram.types import FSInputFile
     import os
     
-    # Проверяем, что пользователь - администратор
     if message.from_user is None:
         return
     
@@ -464,37 +466,12 @@ async def cmd_get_db(message: Message, session: AsyncSession):
         await message.answer("Эта команда доступна только администратору.")
         return
     
-    # Путь к файлу БД (тот, который работает)
     db_path = "app.db"
     
-    # Альтернативные пути, если не найдёт
-    possible_paths = ["app.db", "./app.db", "/app/app.db"]
-    
-    found_path = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            found_path = path
-            break
-    
-    if found_path is None:
-        await message.answer(
-            "Файл базы данных не найден.\n"
-            "Проверенные пути:\n" + "\n".join(f"- {p}" for p in possible_paths)
-        )
-        return
-    
-    try:
+    if os.path.exists(db_path):
         await message.answer_document(
-            document=FSInputFile(found_path),
-            caption=f"База данных бота\nПуть: {found_path}\nРазмер: {os.path.getsize(found_path)} байт"
+            document=FSInputFile(db_path),
+            caption=f"База данных бота\nРазмер: {os.path.getsize(db_path)} байт"
         )
-        await log_action(
-            session=session,
-            actor_user_id=message.from_user.id,
-            event_id=None,
-            action="database_exported",
-            payload_json={"path": found_path},
-        )
-    except Exception as e:
-        await message.answer(f"Ошибка при отправке файла: {str(e)}")
-    )
+    else:
+        await message.answer("Файл базы данных не найден.")
